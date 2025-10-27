@@ -1,0 +1,5 @@
+# Memorix Auto-Configuration
+# EnvironmentPostProcessor executes BEFORE Spring context (earliest possible hook)
+org.springframework.boot.env.EnvironmentPostProcessor=\
+io.memorix.config.DatabaseAutoCreator
+

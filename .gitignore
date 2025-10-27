@@ -1,0 +1,44 @@
+# Compiled files
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Secrets - NIGDY NIE COMMITUJ!
+secrets.yml
+secrets-*.yml
+application-secrets.yml
+*.env
+.env
+
+# Local database
+*.db
+*.sqlite
+
+# Temp
+temp/
+tmp/
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# pgvector source (optional dependency)
+pgvector/
+

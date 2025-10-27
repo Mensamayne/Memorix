@@ -1,0 +1,60 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: memorix
+    
+  web:
+    resources:
+      static-locations: classpath:/static/
+    
+  datasource:
+    url: jdbc:postgresql://localhost:5432/memorix
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+    
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    
+  # Import secrets from external file
+  config:
+    import: optional:file:./secrets.yml
+
+memorix:
+  multi-datasource:
+    enabled: true
+  
+  datasources:
+    default:
+      url: jdbc:postgresql://localhost:5432/memorix
+      username: postgres
+      password: postgres
+    documentation:
+      url: jdbc:postgresql://localhost:5432/memorix_docs
+      username: postgres
+      password: postgres
+
+  embedding:  # ← To zostaje bez zmian!
+    provider: openai
+    openai:
+      model: text-embedding-3-small
+      base-url: https://api.openai.com/v1
+      timeout: 30000
+      max-retries: 3
+
+logging:
+  level:
+    io.memorix: DEBUG
+    io.memorix.api.rest: INFO
+    io.memorix.storage: TRACE
+    io.memorix.query: TRACE
+    io.memorix.embedding: DEBUG
+    org.springframework.web: INFO
+

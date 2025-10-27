@@ -1,0 +1,18 @@
+# Test configuration - uses mock provider
+
+memorix:
+  embedding:
+    provider: mock
+
+spring:
+  datasource:
+    # TestContainers will override these
+    url: jdbc:postgresql://localhost:5432/memorix_test
+    username: test
+    password: test
+    
+logging:
+  level:
+    io.memorix: DEBUG
+    org.springframework: WARN
+

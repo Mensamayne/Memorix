@@ -1,0 +1,73 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Maven
+target/
+**/target/
+.mvn/
+mvnw
+mvnw.cmd
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.settings/
+.project
+.classpath
+
+# Build artifacts
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Secrets
+secrets.yml
+secrets-*.yml
+*.env
+.env.local
+.env.production
+
+# Test results
+**/surefire-reports/
+**/jacoco.exec
+**/site/
+
+# Documentation (not needed in Docker)
+*.md
+!README.md
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# Database
+databases/
+pgvector/
+
+# Node modules (if any)
+node_modules/
+

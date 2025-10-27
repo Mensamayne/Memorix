@@ -1,0 +1,79 @@
+services:
+  # PostgreSQL with pgvector extension
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: memorix-postgres
+    environment:
+      POSTGRES_DB: memorix
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./databases/init-databases.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d memorix"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - memorix-network
+    restart: unless-stopped
+
+  # Memorix Application
+  memorix-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: memorix-app
+    environment:
+      # Database connection
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/memorix
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      
+      # Embedding provider (mock by default, set to openai for production)
+      MEMORIX_EMBEDDING_PROVIDER: openai
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      
+      # Import secrets.yml
+      SPRING_CONFIG_IMPORT: optional:file:/app/secrets.yml
+      
+      # Logging levels
+      LOG_LEVEL_MEMORIX: INFO
+      LOG_LEVEL_REST: INFO
+      
+      # JVM options
+      JAVA_OPTS: "-Xms512m -Xmx1024m -XX:+UseG1GC"
+    ports:
+      - "8080:8080"
+    volumes:
+      - memorix_logs:/app/logs
+      # Mount secrets if needed (optional)
+      - ./memorix-core/secrets.yml:/app/secrets.yml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - memorix-network
+    restart: unless-stopped
+
+networks:
+  memorix-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    name: memorix_postgres_data
+  memorix_logs:
+    name: memorix_logs
+

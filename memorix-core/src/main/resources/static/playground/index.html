@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memorix Playground - AI Memory Management Framework</title>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/components.css">
+    
+    <!-- Favicon (using emoji as fallback) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header / Navigation -->
+        <header class="app-header">
+            <nav class="navbar">
+                <a href="#" class="navbar-brand" data-page="dashboard">
+                    <span class="navbar-brand-icon">🧠</span>
+                    <span>MEMORIX</span>
+                </a>
+                
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-page="dashboard">
+                            <span>📊</span>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="memories">
+                            <span>🗂️</span>
+                            <span>Memories</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="operations">
+                            <span>⚡</span>
+                            <span>Operations</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="search">
+                            <span>🔍</span>
+                            <span>Search</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="lifecycle">
+                            <span>⏱️</span>
+                            <span>Lifecycle</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-page="databases">
+                            <span>🗄️</span>
+                            <span>Databases</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="navbar-status">
+                    <div class="status-indicator" id="api-status">
+                        <span class="status-dot online"></span>
+                        <span>API</span>
+                    </div>
+                    <div class="status-indicator" id="db-status">
+                        <span class="status-dot online"></span>
+                        <span>PostgreSQL</span>
+                    </div>
+                    <div class="status-indicator text-xs">
+                        <span>v1.1.0</span>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        
+        <!-- Main Content Area -->
+        <main class="app-main" id="app-main">
+            <!-- Content will be dynamically loaded here -->
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading...</p>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+    
+    <!-- Scripts - Load as ES6 modules -->
+    <script type="module" src="js/api.js"></script>
+    <script type="module" src="js/state.js"></script>
+    <script type="module" src="js/components/toast.js"></script>
+    <script type="module" src="js/components/modal.js"></script>
+    <script type="module" src="js/components/memory-card.js"></script>
+    <script type="module" src="js/components/pagination.js"></script>
+    <script type="module" src="js/pages/dashboard.js"></script>
+    <script type="module" src="js/pages/memories.js"></script>
+    <script type="module" src="js/pages/operations.js"></script>
+    <script type="module" src="js/pages/search.js"></script>
+    <script type="module" src="js/pages/lifecycle.js"></script>
+    <script type="module" src="js/pages/databases.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

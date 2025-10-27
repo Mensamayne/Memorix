@@ -1,0 +1,294 @@
+package io.memorix.query;
+
+import io.memorix.exception.ErrorCode;
+import io.memorix.exception.StorageException;
+import io.memorix.model.LimitStrategy;
+import io.memorix.model.Memory;
+import io.memorix.model.QueryLimit;
+import io.memorix.model.QueryResult;
+import io.memorix.util.TokenCounter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Component;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Executes semantic search queries with multi-dimensional limits.
+ * 
+ * <p>Features:
+ * <ul>
+ *   <li>Vector similarity search (pgvector)</li>
+ *   <li>Smart token cutoff (don't cut memory in half)</li>
+ *   <li>Multi-dimensional limits (count, tokens, similarity)</li>
+ *   <li>Strategy-based limit application</li>
+ *   <li>Query metadata tracking</li>
+ * </ul>
+ */
+@Component
+public class QueryExecutor {
+    
+    private static final Logger log = LoggerFactory.getLogger(QueryExecutor.class);
+    
+    private final JdbcTemplate jdbcTemplate;
+    private final TokenCounter tokenCounter;
+    
+    @Autowired
+    public QueryExecutor(JdbcTemplate jdbcTemplate, TokenCounter tokenCounter) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.tokenCounter = tokenCounter;
+    }
+    
+    /**
+     * Execute semantic search query.
+     * 
+     * @param userId User ID
+     * @param queryVector Query embedding vector
+     * @param limit Query limits
+     * @return Query result with memories and metadata
+     */
+    public QueryResult executeQuery(String userId, float[] queryVector, QueryLimit limit) {
+        long startTime = System.currentTimeMillis();
+        
+        // 1. Fetch candidates from database (2x buffer for GREEDY strategy)
+        int fetchLimit = calculateFetchLimit(limit);
+        log.debug("Executing query for user={}, fetchLimit={}, minSimilarity={}", 
+            userId, fetchLimit, limit.getMinSimilarity());
+        
+        List<MemoryWithSimilarity> candidates = fetchCandidates(userId, queryVector, fetchLimit);
+        log.debug("Found {} candidates from database", candidates.size());
+        
+        // 2. Apply limits with strategy
+        List<Memory> results = applyLimits(candidates, limit);
+        log.debug("After applying limits: {} results returned", results.size());
+        
+        // 3. Build metadata
+        QueryResult.QueryMetadata metadata = buildMetadata(
+            candidates.size(),
+            results.size(),
+            results,
+            determineLimitReason(limit, results),
+            System.currentTimeMillis() - startTime
+        );
+        
+        return new QueryResult(results, metadata);
+    }
+    
+    /**
+     * Fetch candidate memories from database.
+     */
+    private List<MemoryWithSimilarity> fetchCandidates(String userId, 
+                                                       float[] queryVector, 
+                                                       int fetchLimit) {
+        try {
+            String sql = 
+                "SELECT m.*, " +
+                "       (1 - (m.embedding <=> ?::vector)) AS similarity " +
+                "FROM memories m " +
+                "WHERE m.user_id = ? " +
+                "  AND m.decay > 0 " +
+                "  AND m.embedding IS NOT NULL " +
+                "ORDER BY m.embedding <=> ?::vector " +
+                "LIMIT ?";
+            
+            String vectorStr = vectorToString(queryVector);
+            
+            return jdbcTemplate.query(sql, 
+                new MemoryWithSimilarityRowMapper(),
+                vectorStr, userId, vectorStr, fetchLimit);
+                
+        } catch (Exception e) {
+            throw new StorageException(ErrorCode.QUERY_FAILED,
+                "Failed to execute semantic search: " + e.getMessage(), e)
+                .withContext("userId", userId)
+                .withContext("fetchLimit", fetchLimit);
+        }
+    }
+    
+    /**
+     * Apply limits with strategy.
+     */
+    private List<Memory> applyLimits(List<MemoryWithSimilarity> candidates, QueryLimit limit) {
+        List<Memory> results = new ArrayList<>();
+        int currentCount = 0;
+        int currentTokens = 0;
+        
+        for (MemoryWithSimilarity candidate : candidates) {
+            Memory memory = candidate.getMemory();
+            double similarity = candidate.getSimilarity();
+            
+            log.debug("Processing candidate: id={}, similarity={}, minSimilarity={}", 
+                memory.getId(), similarity, limit.getMinSimilarity());
+            
+            // Check minSimilarity
+            if (limit.getMinSimilarity() != null && similarity < limit.getMinSimilarity()) {
+                log.debug("Skipping memory {} - similarity {} < minSimilarity {}", 
+                    memory.getId(), similarity, limit.getMinSimilarity());
+                if (shouldStopForSimilarity(limit.getStrategy())) {
+                    break;  // Rest will be worse (sorted by similarity)
+                } else {
+                    continue;
+                }
+            }
+            
+            // Check maxCount
+            if (limit.getMaxCount() != null && currentCount >= limit.getMaxCount()) {
+                if (shouldStopForCount(limit.getStrategy())) {
+                    break;
+                }
+            }
+            
+            // Check maxTokens (SMART CUTOFF!)
+            int memoryTokens = memory.getTokenCount();
+            if (limit.getMaxTokens() != null && 
+                currentTokens + memoryTokens > limit.getMaxTokens()) {
+                
+                if (shouldStopForTokens(limit.getStrategy())) {
+                    break;  // Don't add - would exceed
+                }
+            }
+            
+            // Add memory
+            results.add(memory);
+            currentCount++;
+            currentTokens += memoryTokens;
+        }
+        
+        return results;
+    }
+    
+    private boolean shouldStopForSimilarity(LimitStrategy strategy) {
+        return strategy == LimitStrategy.ALL;
+    }
+    
+    private boolean shouldStopForCount(LimitStrategy strategy) {
+        return strategy == LimitStrategy.ALL || 
+               strategy == LimitStrategy.ANY ||
+               strategy == LimitStrategy.GREEDY;
+    }
+    
+    private boolean shouldStopForTokens(LimitStrategy strategy) {
+        return strategy == LimitStrategy.ALL || 
+               strategy == LimitStrategy.GREEDY;
+    }
+    
+    private int calculateFetchLimit(QueryLimit limit) {
+        if (limit.getMaxCount() != null) {
+            // Fetch 2x for GREEDY strategy (might skip some)
+            return limit.getStrategy() == LimitStrategy.GREEDY 
+                ? limit.getMaxCount() * 2 
+                : limit.getMaxCount();
+        }
+        return 1000;  // Default max
+    }
+    
+    private String determineLimitReason(QueryLimit limit, List<Memory> results) {
+        if (results.isEmpty()) {
+            return "no_results";
+        }
+        
+        if (limit.getMaxCount() != null && results.size() >= limit.getMaxCount()) {
+            return "maxCount";
+        }
+        
+        int totalTokens = results.stream()
+            .mapToInt(Memory::getTokenCount)
+            .sum();
+            
+        if (limit.getMaxTokens() != null && totalTokens >= limit.getMaxTokens() - 50) {
+            return "maxTokens";
+        }
+        
+        return "similarity";
+    }
+    
+    private QueryResult.QueryMetadata buildMetadata(int totalFound, 
+                                                    int returned, 
+                                                    List<Memory> results,
+                                                    String limitReason,
+                                                    long executionTimeMs) {
+        int totalTokens = results.stream()
+            .mapToInt(Memory::getTokenCount)
+            .sum();
+        
+        double avgSimilarity = 0.0;
+        // We don't have similarity in results, skip for now
+        
+        return new QueryResult.QueryMetadata(
+            totalFound,
+            returned,
+            totalTokens,
+            avgSimilarity,
+            limitReason,
+            executionTimeMs
+        );
+    }
+    
+    private String vectorToString(float[] vector) {
+        if (vector == null) {
+            return null;
+        }
+        
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < vector.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append(vector[i]);
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+    
+    /**
+     * RowMapper for MemoryWithSimilarity.
+     */
+    private class MemoryWithSimilarityRowMapper implements RowMapper<MemoryWithSimilarity> {
+        @Override
+        public MemoryWithSimilarity mapRow(ResultSet rs, int rowNum) throws SQLException {
+            Memory memory = new Memory();
+            memory.setId(rs.getString("id"));
+            memory.setUserId(rs.getString("user_id"));
+            memory.setContent(rs.getString("content"));
+            memory.setEmbedding(parseVector(rs.getString("embedding")));
+            memory.setDecay(rs.getInt("decay"));
+            memory.setImportance(rs.getFloat("importance"));
+            memory.setTokenCount(rs.getInt("token_count"));
+            memory.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+            memory.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+            
+            Timestamp lastAccessed = rs.getTimestamp("last_accessed_at");
+            if (lastAccessed != null) {
+                memory.setLastAccessedAt(lastAccessed.toLocalDateTime());
+            }
+            
+            double similarity = rs.getDouble("similarity");
+            
+            return new MemoryWithSimilarity(memory, similarity);
+        }
+        
+        private float[] parseVector(String vectorString) {
+            if (vectorString == null) {
+                return null;
+            }
+            
+            String trimmed = vectorString.substring(1, vectorString.length() - 1);
+            if (trimmed.isEmpty()) {
+                return new float[0];
+            }
+            
+            String[] parts = trimmed.split(",");
+            float[] result = new float[parts.length];
+            for (int i = 0; i < parts.length; i++) {
+                result[i] = Float.parseFloat(parts[i].trim());
+            }
+            return result;
+        }
+    }
+}
+
