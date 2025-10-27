@@ -12,7 +12,7 @@
 
     <name>Memorix Parent</name>
     <description>High-Quality AI Memory Framework for Java</description>
-    <url>https://github.com/memorix/memorix</url>
+    <url>https://github.com/Mensamayne/Memorix</url>
 
     <licenses>
         <license>
@@ -23,14 +23,14 @@
 
     <developers>
         <developer>
-            <name>Memorix Team</name>
-            <email>team@memorix.io</email>
+            <name>Łukasz Pełka</name>
+            <email>contact@fitachio.com</email>
+            <url>https://fitachio.com</url>
         </developer>
     </developers>
 
     <modules>
         <module>memorix-core</module>
-        <!-- TODO: Add memorix-spring-boot-starter in Phase 5 -->
     </modules>
 
     <properties>

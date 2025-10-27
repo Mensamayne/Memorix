@@ -2,12 +2,15 @@
 
 **The High-Quality AI Memory Framework for Java**
 
+[![CI/CD](https://github.com/Mensamayne/Memorix/actions/workflows/ci.yml/badge.svg)](https://github.com/Mensamayne/Memorix/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-173%20CI%20%7C%20227%20local-brightgreen)](https://github.com/Mensamayne/Memorix)
+[![Coverage](https://img.shields.io/badge/coverage-77%25-green)](https://github.com/Mensamayne/Memorix)
 [![Java](https://img.shields.io/badge/Java-17+-orange.svg)](https://openjdk.java.net/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> *"A memory system so elegant, it becomes the foundation for every AI agent you build."*
+> Built by **Łukasz Pełka** for [Fitachio](https://fitachio.com) - the memory foundation for AI-powered nutrition and fitness.
 
 ---
 
@@ -451,11 +454,14 @@ mvn test -Dtest=**/*IntegrationTest
 
 ### Test Coverage
 ```
-Tests:      152/153 passing (99.3%)  ✅
-Coverage:   77% code coverage         ✅
-Tests Type: 100% Testcontainers       ✅ (real PostgreSQL)
-Status:     PRODUCTION-READY          ✅
+Tests (CI):      173/173 passing         ✅
+Tests (Local):   227/227 passing         ✅
+Coverage:        77% code coverage       ✅
+Tests Type:      Testcontainers          ✅ (real PostgreSQL)
+Status:          PRODUCTION-READY        ✅
 ```
+
+**Note:** Some Testcontainer tests are skipped on CI due to Docker/Testcontainers initialization issues on GitHub Actions. All 227 tests pass in local development.
 
 ### Performance Benchmarks
 
@@ -467,56 +473,6 @@ Status:     PRODUCTION-READY          ✅
 | Token Count (approximate) | ~1ms | Cached in database |
 
 **Benchmarks on**: PostgreSQL 16, pgvector 0.8.1, 32GB RAM, SSD
-
----
-
-## 🛣️ Roadmap
-
-### v1.1.0-SNAPSHOT (Current Status) ✅
-- [x] Core API
-- [x] PostgreSQL + pgvector integration
-- [x] Decay strategies (Usage, Time, Hybrid, Permanent)
-- [x] Query limits (maxCount, maxTokens, minSimilarity)
-- [x] Plugin system with 3 example plugins
-- [x] Mock embedding provider (for testing)
-- [x] OpenAI embeddings provider ⭐ **NEW!**
-- [x] Deduplication system (hash + semantic) ⭐ **NEW!**
-- [x] Multi-datasource support ⭐ **NEW!**
-- [x] Spring Boot integration
-- [x] Complete documentation (20+ markdown files)
-- [x] 152/153 integration tests passing (99.3%)
-- [x] 77% code coverage (above 75% target)
-- [ ] Production deployment
-
-### v1.1.0 (Future)
-- [ ] Ollama embeddings
-- [ ] Custom embedding providers
-- [ ] Advanced analytics
-- [ ] Query caching
-- [ ] Batch import/export
-
-### v2.0.0 (Future)
-- [ ] Distributed mode (multi-node)
-- [ ] Graph-based relationships
-- [ ] Multi-modal embeddings (text + images)
-- [ ] Real-time sync
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
-- Code standards
-- Development setup
-- Pull request process
-- Issue reporting
-
-**Quality Standards**:
-- 80%+ test coverage
-- All tests pass
-- No compiler warnings
-- JavaDoc complete
-- Code review approved
 
 ---
 
@@ -544,13 +500,17 @@ Inspired by:
 ## 📞 Support
 
 - **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/memorix/memorix/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/memorix/memorix/discussions)
-- **Email**: support@memorix.io
+- **Issues**: [GitHub Issues](https://github.com/Mensamayne/Memorix/issues)
+- **Website**: [fitachio.com](https://fitachio.com)
+- **Email**: contact@fitachio.com
 
 ---
 
-**Made with ❤️ by the Memorix Team**
+## 👨‍💻 Author
 
-*"Perfect is the enemy of good. But 'good enough' is the enemy of great. We're building great."*
+**Created by Łukasz Pełka**
+
+Built as the memory foundation for [Fitachio](https://fitachio.com) - AI-powered nutrition and fitness app.
+
+This framework powers persistent memory, user preferences, and intelligent context management across the Fitachio ecosystem.
 
